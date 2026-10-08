@@ -41,6 +41,8 @@ public final class StatementCounter {
      */
     private static final Set<String> TX_CONTROL = Set.of("begin", "start", "commit", "rollback", "savepoint", "release");
 
+    private static final long POOL_SETTLE_MILLIS = 3_000;
+
     private StatementCounter() {
     }
 
@@ -78,6 +80,9 @@ public final class StatementCounter {
              Connection fixtures = db.connect();
              Connection stats = db.connect()) {
             Workload w = new Workload(0, 1, 'S');
+            // pools open their connections in the background after start-up; let them finish so the
+            // statements a driver runs on a new connection are not attributed to the operations
+            Thread.sleep(POOL_SETTLE_MILLIS);
             for (Scenario scenario : info.supportedScenarios()) {
                 if (!only.isEmpty() && !only.contains(scenario.id())) {
                     continue;

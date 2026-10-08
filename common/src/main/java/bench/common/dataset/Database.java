@@ -329,13 +329,22 @@ public final class Database {
                  + "SELECT query, calls FROM pg_stat_statements WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database()) ORDER BY calls DESC")) {
             while (rs.next()) {
                 String query = rs.getString(1);
-                // excluded: the harness's own statements, and pgjdbc's connection set-up (not per operation)
                 if (query != null && !query.contains("pg_stat_statements") && !query.contains(FIXTURE_ALIAS)
-                    && !query.startsWith("SET application_name")) {
+                    && !isConnectionSetup(query)) {
                     stats.add(new StatementStat(query, rs.getLong(2)));
                 }
             }
         }
         return stats;
+    }
+
+    /**
+     * Statements drivers run when they open a connection, not per operation: pgjdbc's
+     * {@code SET application_name}, r2dbc-postgresql's isolation-level and type lookups.
+     */
+    private static boolean isConnectionSetup(String query) {
+        return query.startsWith("SET application_name")
+            || query.equals("SHOW TRANSACTION ISOLATION LEVEL")
+            || query.startsWith("SELECT oid, * FROM pg_catalog.pg_type WHERE typname IN");
     }
 }

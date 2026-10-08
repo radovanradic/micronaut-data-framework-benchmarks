@@ -180,7 +180,7 @@ baseline of the same access style as the lower bound.
 | ops/s | JMH `Throughput` mode | primary metric |
 | p50 / p99 latency | JMH `SampleTime` mode | |
 | allocation per op | JMH `-prof gc` (`gc.alloc.rate.norm`, B/op) | includes harness allocation, identical for all |
-| SQL statements per op | `pg_stat_statements` (`calls`), separate counting pass | data statements (`SELECT`/`INSERT`/`UPDATE`/`DELETE`, plus any `SET`/`SHOW`) *executed* by the server; a JDBC batch of N inserts counts N; harness statements and pgjdbc's connection set-up (`SET application_name`) are excluded. Not round trips. |
+| SQL statements per op | `pg_stat_statements` (`calls`), separate counting pass | data statements (`SELECT`/`INSERT`/`UPDATE`/`DELETE`, plus any `SET`/`SHOW`) *executed* by the server; a JDBC batch of N inserts counts N; harness statements and the drivers' connection set-up statements (pgjdbc `SET application_name`; r2dbc-postgresql `SHOW TRANSACTION ISOLATION LEVEL` and its `pg_type` lookup) are excluded. Not round trips. |
 | transaction control per op | same pass, reported separately | `BEGIN`/`COMMIT`/`ROLLBACK`/`SAVEPOINT` as recorded by `pg_stat_statements`. A lower bound only: the server records e.g. `BEGIN READ ONLY` but not the `BEGIN`/`COMMIT` pgjdbc sends through the extended protocol. |
 | time to first query, RSS, peak RSS | startup harness | JVM only in phase 1 |
 
