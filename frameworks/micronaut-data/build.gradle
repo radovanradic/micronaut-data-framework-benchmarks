@@ -1,0 +1,47 @@
+// Micronaut Data implementations: JDBC, JPA (Hibernate) and R2DBC.
+//
+// Versions: the Micronaut platform BOM from gradle/libs.versions.toml, with micronaut-data overridden to
+// `micronautDataVersion` (default: the catalog's micronaut-data, a 5.3.0 snapshot from Central
+// snapshots). To benchmark a local build: publishToMavenLocal in micronaut-data, then
+//   ./gradlew benchDist -PmicronautDataVersion=5.3.0-SNAPSHOT -PuseMavenLocal
+plugins {
+    id 'base'
+    id 'bench.implementation' apply false
+}
+
+def micronautDataVersion = providers.gradleProperty('micronautDataVersion')
+    .orElse(libs.versions.micronaut.data)
+    .get()
+
+// each subproject applies bench.implementation; this adds what all Micronaut variants share
+subprojects {
+    group = 'bench.micronaut-data'
+
+    plugins.withId('bench.implementation') {
+        dependencies {
+            annotationProcessor platform(libs.micronaut.platform)
+            annotationProcessor 'io.micronaut:micronaut-inject-java'
+            annotationProcessor 'io.micronaut.data:micronaut-data-processor'
+            implementation platform(libs.micronaut.platform)
+            runtimeOnly 'ch.qos.logback:logback-classic'
+        }
+
+        configurations.configureEach {
+            resolutionStrategy.eachDependency { details ->
+                if (details.requested.group == 'io.micronaut.data') {
+                    details.useVersion(micronautDataVersion)
+                    details.because('micronautDataVersion')
+                }
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn subprojects.collect { "${it.path}:check" }
+}
+
+tasks.register('benchDist') {
+    group = 'benchmark'
+    dependsOn subprojects.collect { "${it.path}:benchDist" }
+}

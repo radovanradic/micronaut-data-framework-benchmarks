@@ -1,0 +1,9 @@
+plugins {
+    id 'bench.implementation'
+}
+
+dependencies {
+    implementation 'io.micronaut.data:micronaut-data-r2dbc'
+    // r2dbc-pool comes in through micronaut-r2dbc-core
+    runtimeOnly libs.r2dbc.postgresql
+}

@@ -1,0 +1,11 @@
+plugins {
+    id 'bench.implementation'
+}
+
+dependencies {
+    implementation 'io.micronaut.data:micronaut-data-jdbc'
+    implementation 'io.micronaut.sql:micronaut-jdbc-hikari'
+    // the criteria API types (JpaSpecificationExecutor) come from jakarta.persistence
+    implementation 'jakarta.persistence:jakarta.persistence-api'
+    runtimeOnly libs.postgresql
+}

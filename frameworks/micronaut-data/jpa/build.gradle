@@ -1,0 +1,10 @@
+plugins {
+    id 'bench.implementation'
+}
+
+dependencies {
+    implementation 'io.micronaut.data:micronaut-data-hibernate-jpa'
+    implementation 'io.micronaut.sql:micronaut-hibernate-jpa'
+    implementation 'io.micronaut.sql:micronaut-jdbc-hikari'
+    runtimeOnly libs.postgresql
+}
