@@ -1,0 +1,4 @@
+plugins {
+    id 'io.micronaut.build.internal.ramework-benchmarks-base'
+    id "io.micronaut.build.internal.bom"
+}
