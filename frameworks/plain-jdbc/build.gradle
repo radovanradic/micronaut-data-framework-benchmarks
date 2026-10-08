@@ -1,0 +1,13 @@
+// Baseline: hand-written JDBC over HikariCP, the lower bound for the blocking categories.
+plugins {
+    id 'bench.implementation'
+}
+
+group = 'bench.plain'
+
+dependencies {
+    implementation libs.hikaricp
+    implementation libs.postgresql
+    // HikariCP logs through SLF4J; the frameworks log at WARN, the baseline not at all
+    runtimeOnly libs.slf4j.nop
+}

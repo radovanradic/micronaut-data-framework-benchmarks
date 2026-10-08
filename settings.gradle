@@ -3,3 +3,4 @@
 rootProject.name = 'micronaut-data-framework-benchmarks'
 
 includeBuild('common')
+includeBuild('frameworks/plain-jdbc')

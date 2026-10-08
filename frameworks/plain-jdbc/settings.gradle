@@ -1,0 +1,15 @@
+pluginManagement {
+    includeBuild('../../build-logic')
+}
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            from(files('../../gradle/libs.versions.toml'))
+        }
+    }
+}
+
+includeBuild('../../common')
+
+rootProject.name = 'plain-jdbc'
