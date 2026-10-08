@@ -6,13 +6,19 @@ frameworks, measured with JMH. `SPEC.md` is the contract; read it before changin
 ## Layout
 
 - `SPEC.md`: schema, dataset, scenarios, metrics and fairness rules. Every implementation follows it.
-- `common/`: shared Java module (schema SQL, deterministic seed data, scenario interfaces, result model,
-  correctness checks, JMH base classes). Changing it affects every framework; keep it framework-neutral.
-- `frameworks/<name>/`: one standalone Gradle build per framework, each including `common` as an included
-  build and reading versions from `gradle/libs.versions.toml`.
-- `runner/`: wrapper scripts (JMH run, startup/RSS harness, result merging).
+- `common/`: shared Java module (schema SQL, deterministic seed data, scenario SPI, JMH base classes,
+  tools for the runner; the correctness checks are in its `testFixtures`). Changing it affects every
+  framework; keep it framework-neutral and free of heavy dependencies (it is on every classpath).
+- `build-logic/`: convention plugins. `bench.implementation` pins the shared drivers/pools/Hibernate/Netty
+  versions and builds `build/bench` (classpath + resolved `versions.txt`) for the runner.
+- `frameworks/<name>/`: one standalone Gradle build per framework, one subproject per variant, each
+  including `common` and `build-logic` and reading versions from `gradle/libs.versions.toml`.
+- `runner/bench.py`: database container, JMH runs, statement counts, startup/RSS, result merging.
 - `results/`: runner output, git-ignored.
 - `DESIGN_NOTE.md`: decisions, open questions and known non-equivalences.
+
+The root build only aggregates: `./gradlew check` runs every correctness check, `./gradlew benchDist`
+builds every distribution. `./gradlew -p frameworks/<name> check` works on one framework.
 
 ## Rules
 
