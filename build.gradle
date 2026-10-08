@@ -1,3 +1,4 @@
+// Root build. Framework implementations live in separate Gradle builds under frameworks/.
 plugins {
-    id "io.micronaut.build.internal.parent"
+    id 'base'
 }
