@@ -1,0 +1,47 @@
+# Shared versions for every build in this repository.
+#
+# The "pinned infrastructure" versions are forced onto every framework's dependency graph by the
+# bench.implementation convention plugin, overriding framework BOMs (SPEC.md, fairness rule 2).
+
+[versions]
+# Database server image used by the runner and by Testcontainers in the correctness checks
+postgres-image = "postgres:18.6"
+
+# Pinned infrastructure (identical for every implementation)
+postgresql = "42.7.13"
+hikaricp = "7.1.0"
+r2dbc-postgresql = "1.1.3.RELEASE"
+r2dbc-pool = "1.0.2.RELEASE"
+hibernate = "7.4.10.Final"
+
+# Frameworks under test
+micronaut-platform = "5.2.2"
+# micronaut-data defaults to the 5.3.0 snapshot (Central snapshots); override with -PmicronautDataVersion=...
+micronaut-data = "5.3.0-SNAPSHOT"
+spring-boot = "4.1.1"
+
+# Harness
+jmh = "1.37"
+reactive-streams = "1.0.4"
+junit = "6.0.3"
+testcontainers = "2.0.5"
+slf4j = "2.0.20"
+
+[libraries]
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
+r2dbc-pool = { module = "io.r2dbc:r2dbc-pool", version.ref = "r2dbc-pool" }
+
+micronaut-platform = { module = "io.micronaut.platform:micronaut-platform", version.ref = "micronaut-platform" }
+spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+
+jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
+jmh-generator = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
+reactive-streams = { module = "org.reactivestreams:reactive-streams", version.ref = "reactive-streams" }
+slf4j-nop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
+
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }

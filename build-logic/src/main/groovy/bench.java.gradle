@@ -1,0 +1,42 @@
+// Java conventions shared by common/ and every framework implementation.
+plugins {
+    id 'java'
+}
+
+def libs = extensions.getByType(VersionCatalogsExtension).named('libs')
+
+repositories {
+    // -PuseMavenLocal lets a locally built framework snapshot (publishToMavenLocal) be benchmarked
+    if (providers.gradleProperty('useMavenLocal').isPresent()) {
+        mavenLocal()
+    }
+    mavenCentral()
+    maven {
+        name = 'centralSnapshots'
+        url = 'https://central.sonatype.com/repository/maven-snapshots/'
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 25
+    options.encoding = 'UTF-8'
+    options.compilerArgs.add('-parameters')
+}
+
+dependencies {
+    testImplementation platform(libs.findLibrary('junit-bom').get())
+    testImplementation libs.findLibrary('junit-jupiter').get()
+    testRuntimeOnly libs.findLibrary('junit-launcher').get()
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    systemProperty 'bench.postgres.image', libs.findVersion('postgres-image').get().requiredVersion
+    testLogging {
+        events 'failed'
+        exceptionFormat 'full'
+    }
+}

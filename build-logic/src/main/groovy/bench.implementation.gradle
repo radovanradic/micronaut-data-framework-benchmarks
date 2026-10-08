@@ -1,0 +1,71 @@
+// Conventions for a framework implementation (frameworks/<name>/...): depends on common, generates the
+// JMH benchmarks, pins the shared infrastructure versions and assembles a runnable benchmark
+// distribution in build/bench (lib/*.jar + versions.txt) for runner/bench.py.
+plugins {
+    id 'bench.java'
+}
+
+def libs = extensions.getByType(VersionCatalogsExtension).named('libs')
+
+dependencies {
+    implementation 'bench:common'
+    annotationProcessor libs.findLibrary('jmh-generator').get()
+    testImplementation testFixtures('bench:common')
+}
+
+// SPEC.md fairness rule 2: identical driver, pool and Hibernate versions for every implementation,
+// whatever the framework BOM says.
+def pinned = [
+        'org.postgresql:postgresql'      : libs.findVersion('postgresql').get().requiredVersion,
+        'com.zaxxer:HikariCP'            : libs.findVersion('hikaricp').get().requiredVersion,
+        'org.postgresql:r2dbc-postgresql': libs.findVersion('r2dbc-postgresql').get().requiredVersion,
+        'io.r2dbc:r2dbc-pool'            : libs.findVersion('r2dbc-pool').get().requiredVersion,
+]
+def hibernateVersion = libs.findVersion('hibernate').get().requiredVersion
+configurations.configureEach {
+    resolutionStrategy.eachDependency { details ->
+        def key = "${details.requested.group}:${details.requested.name}".toString()
+        if (pinned.containsKey(key)) {
+            details.useVersion(pinned[key])
+            details.because('pinned for all implementations (SPEC.md fairness rule 2)')
+        } else if (details.requested.group == 'org.hibernate.orm') {
+            details.useVersion(hibernateVersion)
+            details.because('pinned for all implementations (SPEC.md fairness rule 2)')
+        }
+    }
+}
+
+def runtimeClasspath = configurations.named('runtimeClasspath')
+
+def benchVersions = tasks.register('benchVersions') {
+    description = 'Writes the resolved runtime dependency versions of this implementation.'
+    def artifacts = runtimeClasspath.flatMap { it.incoming.artifacts.resolvedArtifacts }
+    def output = layout.buildDirectory.file('bench-versions/versions.txt')
+    inputs.files(runtimeClasspath)
+    outputs.file(output)
+    doLast {
+        def lines = new TreeSet<String>()
+        artifacts.get().each { artifact ->
+            def id = artifact.id.componentIdentifier
+            if (id instanceof ModuleComponentIdentifier) {
+                // unique snapshots record their timestamped version, so a result names the exact build
+                def version = id.hasProperty('timestampedVersion') ? id.timestampedVersion : id.version
+                lines << "${id.group}:${id.module}:${version}".toString()
+            } else {
+                lines << "${id.displayName}".toString()
+            }
+        }
+        output.get().asFile.text = lines.join('\n') + '\n'
+    }
+}
+
+tasks.register('benchDist', Sync) {
+    description = 'Assembles the benchmark distribution used by runner/bench.py.'
+    group = 'benchmark'
+    into(layout.buildDirectory.dir('bench'))
+    into('lib') {
+        from(tasks.named('jar'))
+        from(runtimeClasspath)
+    }
+    from(benchVersions)
+}

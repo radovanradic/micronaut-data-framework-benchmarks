@@ -1,0 +1,19 @@
+// Framework-neutral shared code: schema, seed data, scenario contract, JMH base classes and tools.
+// Keep the dependencies minimal: everything here ends up on every implementation's classpath.
+plugins {
+    id 'bench.java'
+    id 'java-library'
+    id 'java-test-fixtures'
+}
+
+group = 'bench'
+
+dependencies {
+    api libs.jmh.core
+    api libs.reactive.streams
+    implementation libs.postgresql
+
+    testFixturesApi platform(libs.junit.bom)
+    testFixturesApi libs.junit.jupiter
+    testFixturesApi libs.testcontainers.postgresql
+}

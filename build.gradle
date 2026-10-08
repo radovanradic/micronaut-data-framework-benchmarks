@@ -1,4 +1,16 @@
-// Root build. Framework implementations live in separate Gradle builds under frameworks/.
+// Root build: aggregates the included builds (common/ and frameworks/*).
 plugins {
     id 'base'
+}
+
+def builds = gradle.includedBuilds
+
+tasks.named('check') {
+    dependsOn builds.collect { it.task(':check') }
+}
+
+tasks.register('benchDist') {
+    group = 'benchmark'
+    description = 'Assembles the benchmark distribution of every implementation.'
+    dependsOn builds.findAll { it.name != 'common' }.collect { it.task(':benchDist') }
 }

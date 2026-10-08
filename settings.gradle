@@ -1,1 +1,5 @@
+// Aggregator only: each part is a standalone Gradle build, included here so that `./gradlew check`
+// and `./gradlew benchDist` run across all of them.
 rootProject.name = 'micronaut-data-framework-benchmarks'
+
+includeBuild('common')
