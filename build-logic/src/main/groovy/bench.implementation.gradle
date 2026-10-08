@@ -13,7 +13,7 @@ dependencies {
     testImplementation testFixtures('bench:common')
 }
 
-// SPEC.md fairness rule 2: identical driver, pool and Hibernate versions for every implementation,
+// SPEC.md fairness rule 2: identical driver, pool and Netty versions for every implementation,
 // whatever the framework BOM says.
 def pinned = [
         'org.postgresql:postgresql'      : libs.findVersion('postgresql').get().requiredVersion,
@@ -21,9 +21,9 @@ def pinned = [
         'org.postgresql:r2dbc-postgresql': libs.findVersion('r2dbc-postgresql').get().requiredVersion,
         'io.r2dbc:r2dbc-pool'            : libs.findVersion('r2dbc-pool').get().requiredVersion,
 ]
+// Hibernate is deliberately not pinned: each framework uses the Hibernate version it manages
 def pinnedGroups = [
-        'org.hibernate.orm': libs.findVersion('hibernate').get().requiredVersion,
-        'io.netty'         : libs.findVersion('netty').get().requiredVersion,
+        'io.netty': libs.findVersion('netty').get().requiredVersion,
 ]
 configurations.configureEach {
     resolutionStrategy.eachDependency { details ->

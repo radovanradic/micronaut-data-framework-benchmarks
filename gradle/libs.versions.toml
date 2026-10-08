@@ -14,7 +14,7 @@ r2dbc-postgresql = "1.1.3.RELEASE"
 r2dbc-pool = "1.0.2.RELEASE"
 # transport of r2dbc-postgresql (all io.netty modules)
 netty = "4.2.19.Final"
-hibernate = "7.4.10.Final"
+# Hibernate is not pinned: each framework uses the version its BOM manages
 
 # Frameworks under test
 micronaut-platform = "5.2.2"

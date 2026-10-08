@@ -10,8 +10,9 @@ JDBC/JPA/R2DBC. All seven pass the shared correctness check in both configuratio
 1. **Versions.** Micronaut platform 5.2.2 with micronaut-data overridden to **5.3.0-SNAPSHOT** (from
    Central snapshots). The brief asked for the latest Micronaut 4.x, but Micronaut Data 5.3 is on the
    Micronaut 5 line, so we chose 5.x so that 5.3 can be measured (and so that local builds can be
-   swapped in with `-PmicronautDataVersion` / `-PuseMavenLocal`). Spring Boot 4.1.1 (Spring Data
-   2026.0.1, Spring Framework 7.0.9). JDK 25 (Oracle GraalVM 25.0.3 locally, GraalVM 25 in CI),
+   swapped in with `-PmicronautDataVersion` / `-PuseMavenLocal`). Benchmarking the snapshot is the
+   intended default; every result records the exact timestamped snapshot. Spring Boot 4.1.1 (Spring
+   Data 2026.0.1, Spring Framework 7.0.9). JDK 25 (Oracle GraalVM 25.0.3 locally, GraalVM 25 in CI),
    PostgreSQL 18.6.
 2. **One Gradle build per framework** under `frameworks/<name>/`, one subproject per variant, sharing
    `common/` and `build-logic/` as included builds; the root build only aggregates. Neither the
@@ -20,10 +21,12 @@ JDBC/JPA/R2DBC. All seven pass the shared correctness check in both configuratio
    problems (Spring Boot 4's many `AutoConfiguration.imports` files, Micronaut service files) and keeps
    the classpath identical for JMH, the statement counter and the startup harness.
 3. **Pinned shared infrastructure** (fairness rule 2): pgjdbc 42.7.13, HikariCP 7.1.0,
-   r2dbc-postgresql 1.1.3, r2dbc-pool 1.0.2, Netty 4.2.19 and Hibernate 7.4.10 are forced onto every
-   implementation, overriding the BOMs (Boot alone would use HikariCP 7.0.2, r2dbc-postgresql 1.1.2,
-   Netty 4.2.17 and Hibernate 7.4.5). Every result records the resolved versions, including the
-   snapshot timestamp (`5.3.0-20261008.031039-21` for the smoke run below).
+   r2dbc-postgresql 1.1.3, r2dbc-pool 1.0.2 and Netty 4.2.19 are forced onto every implementation,
+   overriding the BOMs (Boot alone would use HikariCP 7.0.2, r2dbc-postgresql 1.1.2 and Netty 4.2.17).
+   Hibernate is part of the framework stack and is **not** pinned: Micronaut Data JPA runs 7.4.10
+   (Micronaut platform), Spring Data JPA 7.4.5 (Boot). (The smoke run below still used 7.4.10 for
+   both.) Every result records the resolved versions, including the snapshot timestamp
+   (`5.3.0-20261008.031039-21` for the smoke run below).
 4. **No copying of results.** Entities implement small view interfaces from `common`, so scenario
    methods return the framework's own objects and allocation per op reflects the framework, not the
    harness. Correctness checks compare those views with values computed from the seed formulas.
@@ -65,8 +68,12 @@ These follow from what each framework offers idiomatically. They are visible in 
 
 ## Open questions
 
-1. **Snapshot vs release.** Measuring 5.3.0-SNAPSHOT means the default build changes daily. For any
-   published run, pin a release or record and reuse one timestamped snapshot.
+Resolved: benchmark the 5.3.0 snapshot (each result records the timestamped build), and let each
+framework use its own managed Hibernate version.
+
+1. **IN lists in the baseline.** Plain JDBC binds the 1,000 ids as one array (`= ANY(?)`), the form
+   Micronaut Data's own docs recommend for Postgres; both frameworks expand `IN (?, …)`. Keep the
+   baseline as the best hand-written form, or match the frameworks' query shape?
 2. **Plain R2DBC baseline.** The `baseline-r2dbc` category is empty; the reactive numbers have no
    lower bound yet. Suggested for phase 2.
 3. **ID generation for JPA.** Should the tuned JPA configuration be allowed to switch to pooled
@@ -78,9 +85,8 @@ These follow from what each framework offers idiomatically. They are visible in 
 5. **Round trips.** `pg_stat_statements` counts executions, not round trips, and under-counts
    transaction control. A counting proxy (datasource-proxy / r2dbc-proxy) would give exact client-side
    numbers.
-6. **Hibernate version.** Hibernate is pinned to the same version for both JPA variants, so the
-   comparison isolates the Data layer. Should a second configuration use each framework's own
-   managed Hibernate version?
+6. **Micronaut Data findings** (next section) to take to the micronaut-data project: `java.time`
+   reads through `getDate`/`getTimestamp`, and a transaction per JPA finder.
 7. **Native image** startup and RSS aren't implemented. The startup harness accepts any command, so
    adding native executables is mostly build work.
 8. **Database placement.** The smoke run used Postgres in Docker (Rancher Desktop VM) on the same
@@ -89,6 +95,58 @@ These follow from what each framework offers idiomatically. They are visible in 
    container cover development and CI, and zonky binaries lag behind Postgres releases.
 10. **More scenarios to consider.** Count/exists queries, bulk update/delete by criteria, `@Query`
     native SQL, and second-level/query caches (off by default everywhere).
+
+## Investigation: where Micronaut Data loses time
+
+Follow-up to the smoke run, still on the laptop, so the numbers are indicative only. Focused re-run
+of the read scenarios: 1 fork, 3 × 2 s warm-up, 5 × 2 s measurement, ops/s ± 99.9% error:
+
+| Scenario | plain-jdbc | micronaut-data-jdbc | spring-data-jdbc |
+|---|---:|---:|---:|
+| `findById` | 1,779 ± 395 | 1,795 ± 106 | 933 ± 41 |
+| `findByIsbn` | 1,779 ± 328 | 1,788 ± 135 | 1,722 ± 266 |
+| `list100` | 1,492 ± 191 | 1,416 ± 211 | 586 ± 190 |
+| `projection` | 1,564 ± 127 | 1,544 ± 147 | 834 ± 647 |
+| `inList1000` | 542 ± 83 | 453 ± 20 | 171 ± 12 |
+| `list10000` | 136 ± 19 | 89 ± 7 | 26 ± 2 |
+
+Micronaut Data JDBC matches the baseline on single-row and small reads; the smoke run's
+`findByIsbn` gap was noise. Two real gaps remain:
+
+1. **`list10000` (−35%): dates read through `java.sql.Date`.** JFR shows ≥ 28% of samples in
+   `ColumnIndexResultSetReader.readDate` → `ResultSet.getDate(int)`: pgjdbc builds a `Calendar` and
+   resolves time-zone offsets per value, then Micronaut converts the `java.sql.Date` to `LocalDate`.
+   `ResultReader.readDynamic` maps every `DataType.DATE` property this way (and `TIMESTAMP` through
+   `getTimestamp`). Making the baseline read the date with `getDate(7).toLocalDate()` instead of
+   `getObject(7, LocalDate.class)` drops it from 136 to 105 ± 8 ops/s and raises its allocation from
+   6.0 to 7.2 MB/op (Micronaut: 7.4 MB/op). So the date path explains about two thirds of the gap and
+   nearly all the extra allocation. Suggested fix in micronaut-data: read `java.time` properties with
+   `getObject(index, LocalDate.class)` (and `OffsetDateTime`/`LocalDateTime` for timestamps).
+2. **`inList1000` (−16%): query shape.** Micronaut Data expands the collection to `IN (?, …)` with
+   1,000 parameters; the baseline binds one array. See open question 1.
+
+**Micronaut Data JPA vs Spring Data JPA** (about 2× slower on derived-query reads in the smoke run):
+Micronaut Data JPA runs every finder in a transaction (`HibernateJpaOperations.executeRead` →
+`TransactionOperations.executeRead`), so each read is `BEGIN` + query + `COMMIT`. The transaction is
+read-only for Hibernate (manual flush, read-only entities), but the connection gets a plain `BEGIN`
+and an extra `COMMIT` round trip. Spring Data JPA runs derived queries without a transaction.
+Over a network round trip of ~0.5 ms, that roughly halves throughput.
+
+**micronaut-data's own benchmarks** (`benchmarks/`, `SimpleQuery.measureFinder`, a finder by title
+on in-memory H2, built from 5.3.x `da037569b0`, same JMH settings) agree:
+
+| | ops/s | B/op |
+|---|---:|---:|
+| Micronaut Data JDBC | 665,340 ± 46,579 | 5,168 |
+| Spring Data JDBC | 388,219 ± 8,813 | 5,552 |
+| Micronaut Data JPA | 263,078 ± 21,874 | 9,304 |
+| Spring Data JPA | 301,778 ± 46,152 | 7,363 |
+
+On H2 a transaction costs almost nothing, so the JPA gap there is only ~13%; over a real network
+the extra round trip dominates. Neither micronaut-data benchmark covers date columns (`WideBook` has
+only strings and numbers), which is why the `java.sql.Date` cost didn't show up there. Side finding:
+on 5.3.x the `jmhJar` of those benchmark projects contains the dependencies as nested jars, so
+`java -jar …-jmh.jar` fails to find JMH; running from the extracted directory works.
 
 ## Smoke run (NOT representative)
 
