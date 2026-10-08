@@ -1,0 +1,27 @@
+// Spring Data implementations: JDBC, JPA (Hibernate) and R2DBC, on Spring Boot (version in
+// gradle/libs.versions.toml). The Boot BOM is imported as a Gradle platform; no Boot plugin is needed
+// because the benchmarks run from a plain classpath, not a Boot fat jar.
+plugins {
+    id 'base'
+    id 'bench.implementation' apply false
+}
+
+// each subproject applies bench.implementation; this adds what all Spring variants share
+subprojects {
+    group = 'bench.spring-data'
+
+    plugins.withId('bench.implementation') {
+        dependencies {
+            implementation platform(libs.spring.boot.dependencies)
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn subprojects.collect { "${it.path}:check" }
+}
+
+tasks.register('benchDist') {
+    group = 'benchmark'
+    dependsOn subprojects.collect { "${it.path}:benchDist" }
+}

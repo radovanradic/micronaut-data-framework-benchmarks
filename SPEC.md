@@ -188,7 +188,8 @@ baseline of the same access style as the lower bound.
 
 1. Same database server, version, configuration and dataset for every implementation in a session.
 2. Same JDBC driver (`org.postgresql:postgresql`), R2DBC driver (`org.postgresql:r2dbc-postgresql`),
-   pools (HikariCP for JDBC, `r2dbc-pool` for R2DBC) and Hibernate version. These are pinned in
+   pools (HikariCP for JDBC, `r2dbc-pool` for R2DBC), Netty (the R2DBC driver's transport) and
+   Hibernate version. These are pinned in
    `gradle/libs.versions.toml` and forced onto every framework's dependency graph, overriding the
    framework BOMs. The JDBC URL carries no extra driver parameters.
 3. Pool: 16 connections, fixed (minimum idle = maximum = 16; R2DBC initial = max = 16). Configurable

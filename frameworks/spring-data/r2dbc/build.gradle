@@ -1,0 +1,9 @@
+plugins {
+    id 'bench.implementation'
+}
+
+dependencies {
+    // brings r2dbc-pool
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    runtimeOnly libs.r2dbc.postgresql
+}

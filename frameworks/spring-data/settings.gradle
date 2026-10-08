@@ -1,0 +1,19 @@
+pluginManagement {
+    includeBuild('../../build-logic')
+}
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            from(files('../../gradle/libs.versions.toml'))
+        }
+    }
+}
+
+includeBuild('../../common')
+
+rootProject.name = 'spring-data'
+
+include 'jdbc'
+include 'jpa'
+include 'r2dbc'

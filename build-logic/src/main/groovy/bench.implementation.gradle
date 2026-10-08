@@ -21,15 +21,18 @@ def pinned = [
         'org.postgresql:r2dbc-postgresql': libs.findVersion('r2dbc-postgresql').get().requiredVersion,
         'io.r2dbc:r2dbc-pool'            : libs.findVersion('r2dbc-pool').get().requiredVersion,
 ]
-def hibernateVersion = libs.findVersion('hibernate').get().requiredVersion
+def pinnedGroups = [
+        'org.hibernate.orm': libs.findVersion('hibernate').get().requiredVersion,
+        'io.netty'         : libs.findVersion('netty').get().requiredVersion,
+]
 configurations.configureEach {
     resolutionStrategy.eachDependency { details ->
         def key = "${details.requested.group}:${details.requested.name}".toString()
         if (pinned.containsKey(key)) {
             details.useVersion(pinned[key])
             details.because('pinned for all implementations (SPEC.md fairness rule 2)')
-        } else if (details.requested.group == 'org.hibernate.orm') {
-            details.useVersion(hibernateVersion)
+        } else if (pinnedGroups.containsKey(details.requested.group)) {
+            details.useVersion(pinnedGroups[details.requested.group])
             details.because('pinned for all implementations (SPEC.md fairness rule 2)')
         }
     }

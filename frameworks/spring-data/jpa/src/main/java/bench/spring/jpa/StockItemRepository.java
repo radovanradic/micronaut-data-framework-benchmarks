@@ -1,0 +1,6 @@
+package bench.spring.jpa;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface StockItemRepository extends JpaRepository<StockItem, Long> {
+}
