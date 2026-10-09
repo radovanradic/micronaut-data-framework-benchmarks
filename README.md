@@ -24,8 +24,9 @@ frameworks next. [`SPEC.md`](SPEC.md) defines what is measured and the fairness 
 | `spring-data-jpa` | Spring Data JPA (Hibernate) | orm-jpa | `frameworks/spring-data/jpa` |
 | `spring-data-r2dbc` | Spring Data R2DBC | reactive | `frameworks/spring-data/r2dbc` |
 
-Versions live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml). Drivers, pools and Hibernate
-are pinned there and forced onto every implementation (SPEC.md fairness rule 2).
+Versions live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml). Drivers, pools and Netty
+are pinned there and forced onto every implementation (SPEC.md fairness rule 2). Hibernate is not
+pinned: each framework uses the version it manages.
 
 ## Requirements
 
@@ -34,6 +35,9 @@ are pinned there and forced onto every implementation (SPEC.md fairness rule 2).
   With Rancher Desktop, if Testcontainers can't find Docker:
   `export DOCKER_HOST=unix://$HOME/.rd/docker.sock TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`.
 - Python 3.11+ (standard library only) for the runner.
+- On Linux, `/usr/bin/time` (package `time`) for the startup harness's peak RSS.
+
+To set up a Linux machine for runs worth keeping, follow [`MACHINE_SETUP.md`](MACHINE_SETUP.md).
 
 ## Running
 

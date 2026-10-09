@@ -85,8 +85,12 @@ framework use its own managed Hibernate version.
 5. **Round trips.** `pg_stat_statements` counts executions, not round trips, and under-counts
    transaction control. A counting proxy (datasource-proxy / r2dbc-proxy) would give exact client-side
    numbers.
-6. **Micronaut Data findings** (next section) to take to the micronaut-data project: `java.time`
-   reads through `getDate`/`getTimestamp`, and a transaction per JPA finder.
+6. **Micronaut Data findings** (next section): `java.time` reads through `getDate`/`getTimestamp`,
+   and a transaction per JPA finder. Both were considered and left as they are, for compatibility:
+   the date change alters values in edge cases (dates before 1582, time zones with DST at midnight,
+   Postgres `infinity`), and the JPA transaction defines the session and connection scope that
+   existing applications rely on. If wanted later, the date read could be an opt-in setting. The
+   benchmark keeps measuring both as they are.
 7. **Native image** startup and RSS aren't implemented. The startup harness accepts any command, so
    adding native executables is mostly build work.
 8. **Database placement.** The smoke run used Postgres in Docker (Rancher Desktop VM) on the same
